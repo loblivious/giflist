@@ -1,3 +1,4 @@
+import { HttpClientModule } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import {
@@ -22,6 +23,7 @@ export class AppComponent {}
   declarations: [AppComponent],
   imports: [
     BrowserModule,
+    HttpClientModule,
     IonicModule.forRoot(),
     RouterModule.forRoot(
       [

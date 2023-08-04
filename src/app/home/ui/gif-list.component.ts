@@ -2,8 +2,10 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  EventEmitter,
   Input,
   NgModule,
+  Output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -14,7 +16,22 @@ import { Gif } from 'src/app/shared/interfaces';
   template: `
     <ion-list lines="none">
       <div class="gif" *ngFor="let gif of gifs; trackBy: trackByFn">
-        <ion-item button detail="false">
+        <ion-item button detail="false" (click)="playVideo($event, gif)">
+          <ion-spinner color="light" *ngIf="gif.loading"></ion-spinner>
+          <div
+            [style.background]="
+              'url(' + gif.thumbnail + ') 50% 50% / cover no-repeat'
+            "
+            [ngStyle]="
+              !gif.dataLoaded
+                ? {
+                    filter: 'blur(3px) brightness(0.6)',
+                    transform: 'scale(1.1)'
+                  }
+                : {}
+            "
+            class="preload-background"
+          ></div>
           <video
             playsinline
             poster="none"
@@ -93,9 +110,37 @@ import { Gif } from 'src/app/shared/interfaces';
 })
 export class GifListComponent {
   @Input() gifs: Gif[] = [];
+  @Output() gifLoadStart = new EventEmitter<string>();
+  @Output() gifLoadComplete = new EventEmitter<string>();
 
   trackByFn(index: number, gif: Gif) {
     return gif.permalink;
+  }
+
+  playVideo(ev: Event, gif: Gif) {
+    const video = ev.target as HTMLVideoElement;
+
+    if (video.readyState === 4) {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    } else {
+      if (video.getAttribute('data-event-loadeddata') !== 'true') {
+        this.gifLoadStart.emit(gif.permalink);
+        video.load();
+
+        const handleVideoLoaded = async () => {
+          this.gifLoadComplete.emit(gif.permalink);
+          await video.play();
+          video.removeEventListener('loadeddata', handleVideoLoaded);
+        };
+
+        video.addEventListener('loadeddata', handleVideoLoaded);
+        video.setAttribute('data-event-loadeddata', 'true');
+      }
+    }
   }
 }
 
