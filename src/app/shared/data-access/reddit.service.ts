@@ -1,22 +1,59 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { EMPTY, Observable, catchError, map } from 'rxjs';
-import { Gif, RedditPost, RedditResponse } from '../interfaces';
+import {
+  BehaviorSubject,
+  EMPTY,
+  Observable,
+  catchError,
+  concatMap,
+  map,
+  scan,
+} from 'rxjs';
+import {
+  Gif,
+  RedditPagination,
+  RedditPost,
+  RedditResponse,
+} from '../interfaces';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RedditService {
+  #pagination$ = new BehaviorSubject<RedditPagination>({
+    after: null,
+    totalFound: 0,
+    retries: 0,
+    infiniteScroll: null,
+  });
+
   constructor(private http: HttpClient) {}
 
   getGifs(): Observable<Gif[]> {
-    return this.fetchFromReddit('gifs');
+    // Fetch gifs
+    const gifsForCurrentPage$ = this.#pagination$.pipe(
+      concatMap((pagination) =>
+        this.fetchFromReddit('gifs', 'hot', pagination.after)
+      )
+    );
+
+    // Every time we get a new batch of gifs, add it to the cached gifs
+    const allGifs$ = gifsForCurrentPage$.pipe(
+      scan((previousGifs, currentGifs) => [...previousGifs, ...currentGifs])
+    );
+
+    return allGifs$;
   }
 
-  private fetchFromReddit(subreddit: string) {
+  private fetchFromReddit(
+    subreddit: string,
+    sort: string,
+    after: string | null
+  ) {
     return this.http
       .get<RedditResponse>(
-        `https://www.reddit.com/r/${subreddit}/hot/.json?limit=100`
+        `https://www.reddit.com/r/${subreddit}/hot/.json?limit=100` +
+          (after ? `&after=${after}` : '')
       )
       .pipe(
         // If there is an error, just return an empty observable
@@ -72,5 +109,15 @@ export class RedditService {
     }
 
     return null;
+  }
+
+  nextPage(infiniteScrollEvent: Event, after: string) {
+    this.#pagination$.next({
+      after,
+      totalFound: 0,
+      retries: 0,
+      infiniteScroll:
+        infiniteScrollEvent?.target as HTMLIonInfiniteScrollElement,
+    });
   }
 }
