@@ -31,15 +31,16 @@ import { Gif } from 'src/app/shared/interfaces';
                 : {}
             "
             class="preload-background"
-          ></div>
-          <video
-            playsinline
-            poster="none"
-            preload="none"
-            [loop]="true"
-            [muted]="true"
-            [src]="gif.src"
-          ></video>
+          >
+            <video
+              playsinline
+              poster="none"
+              preload="none"
+              [loop]="true"
+              [muted]="true"
+              [src]="gif.src"
+            ></video>
+          </div>
           <ion-label>{{ gif.title }}</ion-label>
         </ion-item>
       </div>
