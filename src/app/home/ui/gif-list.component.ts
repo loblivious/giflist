@@ -7,6 +7,7 @@ import {
   NgModule,
   Output,
 } from '@angular/core';
+import { Browser } from '@capacitor/browser';
 import { IonicModule } from '@ionic/angular';
 import { Gif } from 'src/app/shared/interfaces';
 
@@ -42,6 +43,12 @@ import { Gif } from 'src/app/shared/interfaces';
           </div>
           <ion-label>{{ gif.title }}</ion-label>
         </ion-item>
+        <ion-list-header>
+          <ion-label> {{ gif.title }} </ion-label>
+          <ion-button (click)="showComments(gif)">
+            <ion-icon name="chatbubbles"></ion-icon> {{ gif.comments }}
+          </ion-button>
+        </ion-list-header>
       </div>
     </ion-list>
   `,
@@ -141,6 +148,14 @@ export class GifListComponent {
         video.setAttribute('data-event-loadeddata', 'true');
       }
     }
+  }
+
+  showComments(gif: Gif) {
+    Browser.open({
+      toolbarColor: '#fff',
+      url: `https://reddit.com/${gif.permalink}`,
+      windowName: '_system',
+    });
   }
 }
 

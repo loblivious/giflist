@@ -36,6 +36,7 @@ export class RedditService {
     infiniteScroll: null,
   });
   private settings$ = this.settingsService.settings$;
+  isLoading$ = new BehaviorSubject<boolean>(false);
 
   constructor(
     private http: HttpClient,
@@ -64,6 +65,7 @@ export class RedditService {
       switchMap(([subreddit, settings]) => {
         // Fetch gifs
         const gifsForCurrentPage$ = this.#pagination$.pipe(
+          tap(() => this.isLoading$.next(true)),
           concatMap((pagination) =>
             this.fetchFromReddit(
               subreddit,
@@ -86,6 +88,7 @@ export class RedditService {
 
                 if (!shouldKeepTrying) {
                   pagination.infiniteScroll?.complete();
+                  this.isLoading$.next(false);
                 }
 
                 return shouldKeepTrying
