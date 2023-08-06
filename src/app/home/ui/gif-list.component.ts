@@ -7,7 +7,6 @@ import {
   NgModule,
   Output,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Gif } from 'src/app/shared/interfaces';
 
@@ -147,7 +146,7 @@ export class GifListComponent {
 
 @NgModule({
   declarations: [GifListComponent],
-  imports: [CommonModule, IonicModule, FormsModule],
+  imports: [CommonModule, IonicModule],
   exports: [GifListComponent],
 })
 export class GifListComponentModule {}

@@ -6,8 +6,13 @@ import {
   Observable,
   catchError,
   concatMap,
+  debounceTime,
+  distinctUntilChanged,
   map,
   scan,
+  startWith,
+  switchMap,
+  tap,
 } from 'rxjs';
 import {
   Gif,
@@ -15,6 +20,7 @@ import {
   RedditPost,
   RedditResponse,
 } from '../interfaces';
+import { FormControl } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root',
@@ -29,20 +35,41 @@ export class RedditService {
 
   constructor(private http: HttpClient) {}
 
-  getGifs(): Observable<Gif[]> {
-    // Fetch gifs
-    const gifsForCurrentPage$ = this.#pagination$.pipe(
-      concatMap((pagination) =>
-        this.fetchFromReddit('gifs', 'hot', pagination.after)
+  getGifs(subredditFormControl: FormControl): Observable<Gif[]> {
+    // Start with a default emission of 'gifs', then only emit when
+    // subreddit changes
+    const subreddit$ = subredditFormControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      startWith(subredditFormControl.value),
+      // Reset pagination values
+      tap(() =>
+        this.#pagination$.next({
+          after: null,
+          totalFound: 0,
+          retries: 0,
+          infiniteScroll: null,
+        })
       )
     );
 
-    // Every time we get a new batch of gifs, add it to the cached gifs
-    const allGifs$ = gifsForCurrentPage$.pipe(
-      scan((previousGifs, currentGifs) => [...previousGifs, ...currentGifs])
-    );
+    return subreddit$.pipe(
+      switchMap((subreddit) => {
+        // Fetch gifs
+        const gifsForCurrentPage$ = this.#pagination$.pipe(
+          concatMap((pagination) =>
+            this.fetchFromReddit(subreddit, 'hot', pagination.after)
+          )
+        );
 
-    return allGifs$;
+        // Every time we get a new batch of gifs, add it to the cached gifs
+        const allGifs$ = gifsForCurrentPage$.pipe(
+          scan((previousGifs, currentGifs) => [...previousGifs, ...currentGifs])
+        );
+
+        return allGifs$;
+      })
+    );
   }
 
   private fetchFromReddit(
