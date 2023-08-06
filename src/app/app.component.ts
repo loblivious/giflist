@@ -1,5 +1,10 @@
 import { HttpClientModule } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, NgModule } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  NgModule,
+  OnInit,
+} from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import {
   PreloadAllModules,
@@ -9,6 +14,7 @@ import {
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 import { Drivers } from '@ionic/storage';
 import { IonicStorageModule } from '@ionic/storage-angular';
+import { SettingsService } from './shared/data-access/settings.service';
 
 @Component({
   selector: 'app-root',
@@ -19,7 +25,13 @@ import { IonicStorageModule } from '@ionic/storage-angular';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent {}
+export class AppComponent implements OnInit {
+  constructor(private settingsService: SettingsService) {}
+
+  ngOnInit(): void {
+    this.settingsService.init();
+  }
+}
 
 @NgModule({
   declarations: [AppComponent],
@@ -43,10 +55,7 @@ export class AppComponent {}
       { preloadingStrategy: PreloadAllModules }
     ),
     IonicStorageModule.forRoot({
-      driverOrder: [
-        Drivers.IndexedDB,
-        Drivers.LocalStorage,
-      ],
+      driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
     }),
   ],
   providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }],
