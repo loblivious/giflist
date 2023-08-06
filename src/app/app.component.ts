@@ -43,7 +43,10 @@ export class AppComponent {}
       { preloadingStrategy: PreloadAllModules }
     ),
     IonicStorageModule.forRoot({
-      driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+      driverOrder: [
+        Drivers.IndexedDB,
+        Drivers.LocalStorage,
+      ],
     }),
   ],
   providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }],
