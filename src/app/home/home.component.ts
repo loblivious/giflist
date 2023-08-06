@@ -4,6 +4,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs';
+import { SettingsComponentModule } from '../settings/settings.component';
 import { RedditService } from '../shared/data-access/reddit.service';
 import { Gif } from '../shared/interfaces';
 import { GifListComponentModule } from './ui/gif-list.component';
@@ -18,6 +19,14 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
           <app-search-bar
             [subredditFormControl]="subredditFormControl"
           ></app-search-bar>
+          <ion-buttons slot="end">
+            <ion-button
+              id="settings-button"
+              (click)="settingsModalIsOpen$.next(true)"
+            >
+              <ion-icon slot="icon-only" name="settings"></ion-icon>
+            </ion-button>
+          </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <ion-content>
@@ -37,6 +46,15 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
             loadingText="Fetching gifs..."
           ></ion-infinite-scroll-content>
         </ion-infinite-scroll>
+        <ion-popover
+          trigger="settings-button"
+          [isOpen]="vm.modalIsOpen"
+          (ionPopoverDidDismiss)="settingsModalIsOpen$.next(false)"
+        >
+          <ng-template>
+            <app-settings></app-settings>
+          </ng-template>
+        </ion-popover>
       </ion-content>
     </ng-container>
   `,
@@ -47,6 +65,7 @@ export class HomeComponent {
 
   currentlyLoadingGifs$ = new BehaviorSubject<string[]>([]);
   loadedGifs$ = new BehaviorSubject<string[]>([]);
+  settingsModalIsOpen$ = new BehaviorSubject<boolean>(false);
   gifs$ = combineLatest([
     this.redditService.getGifs(this.subredditFormControl),
     this.currentlyLoadingGifs$,
@@ -61,9 +80,13 @@ export class HomeComponent {
     )
   );
 
-  vm$ = combineLatest([this.gifs$.pipe(startWith([]))]).pipe(
-    map(([gifs]) => ({
+  vm$ = combineLatest([
+    this.gifs$.pipe(startWith([])),
+    this.settingsModalIsOpen$,
+  ]).pipe(
+    map(([gifs, modalIsOpen]) => ({
       gifs,
+      modalIsOpen,
     }))
   );
 
@@ -100,6 +123,7 @@ export class HomeComponent {
     GifListComponentModule,
     ReactiveFormsModule,
     SearchBarComponentModule,
+    SettingsComponentModule,
     RouterModule.forChild([
       {
         path: '',

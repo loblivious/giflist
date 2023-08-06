@@ -1,10 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import {
   BehaviorSubject,
   EMPTY,
   Observable,
   catchError,
+  combineLatest,
   concatMap,
   debounceTime,
   distinctUntilChanged,
@@ -20,7 +22,7 @@ import {
   RedditPost,
   RedditResponse,
 } from '../interfaces';
-import { FormControl } from '@angular/forms';
+import { SettingsService } from './settings.service';
 
 @Injectable({
   providedIn: 'root',
@@ -32,8 +34,12 @@ export class RedditService {
     retries: 0,
     infiniteScroll: null,
   });
+  private settings$ = this.settingsService.settings$;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private settingsService: SettingsService
+  ) {}
 
   getGifs(subredditFormControl: FormControl): Observable<Gif[]> {
     // Start with a default emission of 'gifs', then only emit when
@@ -53,12 +59,12 @@ export class RedditService {
       )
     );
 
-    return subreddit$.pipe(
-      switchMap((subreddit) => {
+    return combineLatest([subreddit$, this.settings$]).pipe(
+      switchMap(([subreddit, settings]) => {
         // Fetch gifs
         const gifsForCurrentPage$ = this.#pagination$.pipe(
           concatMap((pagination) =>
-            this.fetchFromReddit(subreddit, 'hot', pagination.after)
+            this.fetchFromReddit(subreddit, settings.sort, pagination.after)
           )
         );
 
@@ -79,7 +85,7 @@ export class RedditService {
   ) {
     return this.http
       .get<RedditResponse>(
-        `https://www.reddit.com/r/${subreddit}/hot/.json?limit=100` +
+        `https://www.reddit.com/r/${subreddit}/${sort}/.json?limit=100` +
           (after ? `&after=${after}` : '')
       )
       .pipe(

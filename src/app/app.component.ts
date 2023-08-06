@@ -7,6 +7,8 @@ import {
   RouterModule,
 } from '@angular/router';
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
+import { Drivers } from '@ionic/storage';
+import { IonicStorageModule } from '@ionic/storage-angular';
 
 @Component({
   selector: 'app-root',
@@ -40,6 +42,9 @@ export class AppComponent {}
       ],
       { preloadingStrategy: PreloadAllModules }
     ),
+    IonicStorageModule.forRoot({
+      driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+    }),
   ],
   providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }],
   bootstrap: [AppComponent],
