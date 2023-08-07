@@ -6,6 +6,7 @@ import { IonicModule } from '@ionic/angular';
 import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs';
 import { SettingsComponentModule } from '../settings/settings.component';
 import { RedditService } from '../shared/data-access/reddit.service';
+import { SettingsService } from '../shared/data-access/settings.service';
 import { Gif } from '../shared/interfaces';
 import { GifListComponentModule } from './ui/gif-list.component';
 import { SearchBarComponentModule } from './ui/search-bar.component';
@@ -44,6 +45,7 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
         ></app-gif-list>
 
         <ion-infinite-scroll
+          *ngIf="vm.gifs.length >= vm.settings.perPage"
           threshold="100px"
           (ionInfinite)="loadMore($event, vm.gifs)"
         >
@@ -99,17 +101,22 @@ export class HomeComponent {
 
   vm$ = combineLatest([
     this.gifs$.pipe(startWith([])),
+    this.settingsService.settings$,
     this.redditService.isLoading$,
     this.settingsModalIsOpen$,
   ]).pipe(
-    map(([gifs, isLoading, modalIsOpen]) => ({
+    map(([gifs, settings, isLoading, modalIsOpen]) => ({
       gifs,
+      settings,
       isLoading,
       modalIsOpen,
     }))
   );
 
-  constructor(private redditService: RedditService) {}
+  constructor(
+    private redditService: RedditService,
+    private settingsService: SettingsService
+  ) {}
 
   setLoading(permalink: string) {
     // Add the gifs permalink to the laoding array
