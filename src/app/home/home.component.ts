@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, NgModule } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
-import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs';
+import { combineLatest, map, startWith } from 'rxjs';
 import { SettingsComponentModule } from '../settings/settings.component';
 import { RedditService } from '../shared/data-access/reddit.service';
 import { SettingsService } from '../shared/data-access/settings.service';
 import { Gif } from '../shared/interfaces';
+import { HomeStore } from './data-access/home.store';
 import { GifListComponentModule } from './ui/gif-list.component';
 import { SearchBarComponentModule } from './ui/search-bar.component';
 
@@ -18,12 +19,12 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
       <ion-header>
         <ion-toolbar color="primary">
           <app-search-bar
-            [subredditFormControl]="subredditFormControl"
+            [subredditFormControl]="store.subredditFormControl"
           ></app-search-bar>
           <ion-buttons slot="end">
             <ion-button
               id="settings-button"
-              (click)="settingsModalIsOpen$.next(true)"
+              (click)="store.settingsModalIsOpen$.next(true)"
             >
               <ion-icon slot="icon-only" name="settings"></ion-icon>
             </ion-button>
@@ -40,8 +41,8 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
         <app-gif-list
           *ngIf="vm.gifs"
           [gifs]="vm.gifs"
-          (gifLoadStart)="setLoading($event)"
-          (gifLoadComplete)="setLoadingComplete($event)"
+          (gifLoadStart)="store.setLoading($event)"
+          (gifLoadComplete)="store.setLoadingComplete($event)"
         ></app-gif-list>
 
         <ion-infinite-scroll
@@ -57,7 +58,7 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
         <ion-popover
           trigger="settings-button"
           [isOpen]="vm.modalIsOpen"
-          (ionPopoverDidDismiss)="settingsModalIsOpen$.next(false)"
+          (ionPopoverDidDismiss)="store.settingsModalIsOpen$.next(false)"
         >
           <ng-template>
             <app-settings></app-settings>
@@ -77,33 +78,15 @@ import { SearchBarComponentModule } from './ui/search-bar.component';
       }
     `,
   ],
+  providers: [HomeStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
-  subredditFormControl = new FormControl('gifs');
-
-  currentlyLoadingGifs$ = new BehaviorSubject<string[]>([]);
-  loadedGifs$ = new BehaviorSubject<string[]>([]);
-  settingsModalIsOpen$ = new BehaviorSubject<boolean>(false);
-  gifs$ = combineLatest([
-    this.redditService.getGifs(this.subredditFormControl),
-    this.currentlyLoadingGifs$,
-    this.loadedGifs$,
-  ]).pipe(
-    map(([gifs, currentlyLoadingGifs, loadedGifs]) =>
-      gifs.map((gif) => ({
-        ...gif,
-        loading: currentlyLoadingGifs.includes(gif.permalink),
-        dataLoaded: loadedGifs.includes(gif.permalink),
-      }))
-    )
-  );
-
   vm$ = combineLatest([
-    this.gifs$.pipe(startWith([])),
+    this.store.gifs$.pipe(startWith([])),
     this.settingsService.settings$,
     this.redditService.isLoading$,
-    this.settingsModalIsOpen$,
+    this.store.settingsModalIsOpen$,
   ]).pipe(
     map(([gifs, settings, isLoading, modalIsOpen]) => ({
       gifs,
@@ -114,27 +97,10 @@ export class HomeComponent {
   );
 
   constructor(
+    protected store: HomeStore,
     private redditService: RedditService,
     private settingsService: SettingsService
   ) {}
-
-  setLoading(permalink: string) {
-    // Add the gifs permalink to the laoding array
-    this.currentlyLoadingGifs$.next([
-      ...this.currentlyLoadingGifs$.value,
-      permalink,
-    ]);
-  }
-
-  setLoadingComplete(permalinkToComplete: string) {
-    this.loadedGifs$.next([...this.loadedGifs$.value, permalinkToComplete]);
-
-    this.currentlyLoadingGifs$.next([
-      ...this.currentlyLoadingGifs$.value.filter(
-        (permalink) => !this.loadedGifs$.value.includes(permalink)
-      ),
-    ]);
-  }
 
   loadMore(ev: Event, currentGifs: Gif[]) {
     this.redditService.nextPage(ev, currentGifs[currentGifs.length - 1].name);
